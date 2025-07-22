@@ -1,0 +1,211 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible Users Role
+# @version 2025.07.001
+# @since 2025.07.001
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage users on the system.
+#
+#####
+
+### General Settings
+- name: "USERS > Assert > Validate role action parameter"
+  ansible.builtin.assert:
+    that:
+      - users.action is defined
+      - users.action is string
+      - users.action in [ "all", "create", "remove" ]
+    quiet: true
+    fail_msg: "users.action must be one of: all, create, remove"
+
+- name: "USERS > Assert > Validate home creation parameter"
+  ansible.builtin.assert:
+    that:
+      - users.home.create is defined
+      - users.home.create is boolean
+    quiet: true
+    fail_msg: "users.home.create must be a boolean (true/false)"
+
+- name: "USERS > Assert > Validate home removal parameter"
+  ansible.builtin.assert:
+    that:
+      - users.home.remove is defined
+      - users.home.remove is boolean
+    quiet: true
+    fail_msg: "users.home.remove must be a boolean (true/false)"
+
+### User Default Configuration
+- name: "USERS > Assert > Validate default shell parameter"
+  ansible.builtin.assert:
+    that:
+      - users.default.shell is defined
+      - users.default.shell is string
+    quiet: true
+    fail_msg: "users.default.shell must be a string"
+
+- name: "USERS > Assert > Validate password age parameters"
+  ansible.builtin.assert:
+    that:
+      - users.password.age.max is defined
+      - users.password.age.min is defined
+      - users.password.age.max is number
+      - users.password.age.min is number
+      - users.password.age.min >= 0
+      - users.password.age.max >= users.password.age.min
+    quiet: true
+    fail_msg: "Password age parameters must be valid numbers and users.password.age.max must be >= users.password.age.min"
+
+- name: "USERS > Assert > Validate group creation parameter"
+  ansible.builtin.assert:
+    that:
+      - users.group.create is defined
+      - users.group.create is boolean
+    quiet: true
+    fail_msg: "users.group.create must be a boolean (true/false)"
+
+- name: "USERS > Assert > Validate default groups parameter"
+  ansible.builtin.assert:
+    that:
+      - users.default.groups is defined
+      - users.default.groups is sequence
+    quiet: true
+    fail_msg: "users.default.groups must be a list"
+
+- name: "Users > Assert > Validate group append parameter"
+  ansible.builtin.assert:
+    that:
+      - users.group.append is defined
+      - users.group.append is boolean
+    quiet: true
+    fail_msg: "users.group.append must be a boolean (true/false)"
+
+### Password Generation Settings
+- name: "USERS > Assert > Validate password generation parameter"
+  ansible.builtin.assert:
+    that:
+      - users.password.generate is defined
+      - users.password.generate is boolean
+    quiet: true
+    fail_msg: "users.password.generate must be a boolean (true/false)"
+
+- name: "USERS > Assert > Validate password length parameter"
+  ansible.builtin.assert:
+    that:
+      - users.password.length is defined
+      - users.password.length is number
+      - users.password.length >= 8
+    quiet: true
+    fail_msg: "users.password.length must be a number >= 8"
+
+- name: "USERS > Assert > Validate password store filename parameter"
+  ansible.builtin.assert:
+    that:
+      - users.password.store.file_name is defined
+    quiet: true
+    fail_msg: "users.password.store.file_name must be defined"
+
+- name: "USERS > Assert > Validate password store controller parameter"
+  ansible.builtin.assert:
+    that:
+      - users.passwords.store.controller is defined
+      - users.passwords.store.controller is boolean
+    quiet: true
+    fail_msg: "users.passwords.store.controller must be a boolean (true/false)"
+
+- name: "USERS > Assert > Validate password store remote path parameter"
+  ansible.builtin.assert:
+    that:
+      - users.password.store.remote_path is defined
+    quiet: true
+    fail_msg: "users.password.store.remote_path must be defined (can be empty string)"
+
+- name: "USERS > Assert > Validate password store remote parameter"
+  ansible.builtin.assert:
+    that:
+      - users.password.store.remote is defined
+      - users.password.store.remote is boolean
+    quiet: true
+    fail_msg: "users.password.store.remote must be a boolean (true/false)"
+
+- name: "USERS > Assert > Validate password chars parameter"
+  ansible.builtin.assert:
+    that:
+      - users.password.chars is defined
+      - users.password.chars is string
+      - users.password.chars | length >= 10
+    quiet: true
+    fail_msg: "users.password.chars must be a string with at least 10 characters"
+
+- name: "USERS > Assert > Validate password hash algorithm"
+  ansible.builtin.assert:
+    that:
+      - users.password.hash.algorithm is defined
+      - users.password.hash.algorithm is string
+      - users.password.hash.algorithm in ["sha512", "sha256", "md5"]
+    quiet: true
+    fail_msg: "users.password.hash.algorithm must be one of: sha512, sha256, md5 (sha512 recommended)"
+
+### SSH Key Management
+- name: "USERS > Assert > Validate SSH key management parameter"
+  ansible.builtin.assert:
+    that:
+      - users.ssh_key.manage is defined
+      - users.ssh_key.manage is boolean
+    quiet: true
+    fail_msg: "users.ssh_key.manage must be a boolean (true/false)"
+
+- name: "USERS > Assert > Validate SSH key type parameter"
+  ansible.builtin.assert:
+    that:
+      - users.ssh_key.type is defined
+      - users.ssh_key.type is string
+      - users.ssh_key.type in ["rsa", "ed25519", "ecdsa", "dsa"]
+    quiet: true
+    fail_msg: "users.ssh_key.type must be one of: rsa, ed25519, ecdsa, dsa"
+
+- name: "USERS > Assert > Validate SSH key bits parameter"
+  ansible.builtin.assert:
+    that:
+      - users.ssh_key.bits is defined
+      - users.ssh_key.bits is number
+      - users.ssh_key.bits in [1024, 2048, 4096]
+    quiet: true
+    fail_msg: "users.ssh_key.bits must be one of: 1024, 2048, 4096"
+
+- name: "USERS > Assert > Validate SSH directory settings"
+  ansible.builtin.assert:
+    that:
+      - users.ssh.directory.path is defined
+      - users.ssh.directory.path is string
+      - users.ssh.authorized_keys.file is defined
+      - users.ssh.authorized_keys.file is string
+      - users.ssh.directory.mode is defined
+      - users.ssh.directory.mode is string
+      - users.ssh.authorized_keys.mode is defined
+      - users.ssh.authorized_keys.mode is string
+    quiet: true
+    fail_msg: "All SSH directory settings must be defined"
+
+### User Dictionarie Data
+- name: "USERS > Assert > Validate users dictionary parameter"
+  ansible.builtin.assert:
+    that:
+      - users.data.create is defined
+      - users.data.create is mapping
+    quiet: true
+    fail_msg: "users.data.create must be a dictionary (mapping)"
+
+- name: "USERS > Assert > Validate users remove dictionary parameter"
+  ansible.builtin.assert:
+    that:
+      - users.date.remove is defined
+      - users.date.remove is mapping
+    quiet: true
+    fail_msg: "users.date.remove must be a dictionary (mapping)"

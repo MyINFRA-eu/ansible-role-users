@@ -1,0 +1,45 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible Users Role
+# @version 2025.07.001
+# @since 2025.07.001
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage users on the system.
+#
+#####
+
+- name: "USERS > Remove > Convert users removal dictionary to list"
+  ansible.builtin.set_fact:
+    users_remove_list: "{{ users_remove_list | default([]) + [{'name': username} | combine(user_data)] }}"
+  loop: "{{ users.data.remove | dict2items }}"
+  vars:
+    username: "{{ item.key }}"
+    user_data: "{{ item.value | default({}) }}"
+  when:
+    - users.data.remove is defined and users.data.remove | length > 0
+
+- name: "USERS > Remove > Remove user accounts"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: absent
+    remove: "{{ item.home.remove | default(users.home.remove) }}"
+    force: "{{ item.force | default(false) }}"
+  become: true
+  loop: "{{ users_remove_list }}"
+
+- name: "USERS > Remove > Remove user groups"
+  ansible.builtin.group:
+    name: "{{ item.group | default(item.name) }}"
+    state: absent
+  become: true
+  loop: "{{ users_remove_list }}"
+  when:
+    - users.group.create | bool
+    - users.group.create is true

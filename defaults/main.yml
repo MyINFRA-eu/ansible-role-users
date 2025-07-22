@@ -19,3 +19,78 @@
 myinfra:
   users:
     version: "2025.07.001"
+
+### Role variables
+users:
+  # define wich parts of the role to execute (Options: 'all', 'create', 'remove')
+  action: "all"
+  # default options to use when no user data is set
+  default:
+    # default shell that will be used for users unless overwritten in the users data
+    shell: "/bin/bash"
+    # default groups that will be added to the users unless overwritten in the users data
+    groups: []
+  # default home settings
+  home:
+    # create home directory when adding user
+    create: true
+    # remove home directory when deleting user
+    remove: true
+  # default password settings
+  password:
+    # age (expire date) of password
+    age:
+      # maximum time in days
+      max: 90
+      # minimum time in days
+      min: 0
+    # generate a random password when not set
+    generate: true
+    # default length of generated password
+    length: 16
+    # default characters to be used with generated passwords
+    chars: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
+    # default settings where to store generated passwords
+    store:
+      # filename on the local machine
+      file_name: >-
+        password_{{ ansible_hostname }}_{{ ansible_date_time.year }}-{{ ansible_date_time.month }}-{{ ansible_date_time.day }}_
+        {{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}
+      # store the generated passwords on the local machine
+      controller: false
+      # path to store the generated password on the remote machine
+      remote_path: ""
+      # store the generated password on the remote machine
+      remote: false
+    # default password algorithm (Options: 'sha512', 'md5')
+    hash: "sha512"
+  # default group settings
+  group:
+    # create a primary group with the same name as the user
+    create: true
+    # append to the existing groups (true) or replace them (false)
+    append: true
+  # default ssh_key settings
+  ssh_key:
+    # manage ssh keys for user and create authorized_keys file
+    manage: true
+    # default key type (Options: 'rsa', 'ed25519', 'ecdsa', 'dsa')
+    type: "ed25519"
+    # default key size (for rsa keys) (Options: '1024', '2048', '4096')
+    bits: 4096
+  # default ssh settings
+  ssh:
+    # directory settings
+    directory:
+      path: ".ssh"
+      mode: "0700"
+    # authorized_key settings
+    authorized_keys:
+      file: ".ssh/authorized_keys"
+      mode: "0600"
+  # user data dictionary
+  data:
+    # dictionary with users to create on the system
+    create: {}
+    # dictionary with users to remove from system
+    remove: {}

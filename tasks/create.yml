@@ -1,0 +1,169 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible Users Role
+# @version 2025.07.001
+# @since 2025.07.001
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage users on the system.
+#
+#####
+
+- name: "USERS > Create > Convert users dictionary to list"
+  ansible.builtin.set_fact:
+    users_list: "{{ users_list | default([]) + [{'name': username} | combine(user_data)] }}"
+  loop: "{{ users.data.create | dict2items }}"
+  vars:
+    username: "{{ item.key }}"
+    user_data: "{{ item.value | default({}) }}"
+  when:
+    - users.data.create is defined and users.data.create | length > 0
+
+- name: "USERS > Create > Generate random passwords for users"
+  ansible.builtin.set_fact:
+    users_generated_passwords: >-
+      {{ users_generated_passwords | default({}) | combine({item.name:
+         lookup('ansible.builtin.password',
+                '/dev/null',
+                length=item.password.length | default(users.password.length),
+                chars=users.password.chars | default(users.password.chars))
+      }) }}
+  no_log: true
+  loop: "{{ users_list }}"
+  when:
+    - users.password.generate | bool and users.password.generate is true
+    - item.password is not defined
+    - item.state | default('present') == 'present'
+
+- name: "USERS > Create > Store generated passwords to file on Ansible controller"
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    content: |
+      # Generated Passwords - {{ ansible_date_time.iso8601 }}
+      # Host: {{ inventory_hostname }}
+      {% for user in users_list %}
+      {% if users_generated_passwords[user.name] is defined %}
+      User: {{ user.name }} Password: {{ users_generated_passwords[user.name] }}
+      {% endif %}
+      {% endfor %}
+    dest: "{{ playbook_dir }}/{{ users.password.store.file_name }}"
+    mode: "0600"
+  no_log: true
+  when:
+    - users.password.generate | bool and users.password.generate is true
+    - users.password.store.file_name is defined and users.password.store.file_name != ""
+    - users.password.store.controller | bool and users.password.store.controller is true
+
+- name: "USERS > Create > Store generated passwords to file on remote host"
+  ansible.builtin.copy:
+    content: |
+      # Generated Passwords - {{ ansible_date_time.iso8601 }}
+      # Host: {{ inventory_hostname }}
+      {% for user in users_list %}
+      {% if users_generated_passwords[user.name] is defined %}
+      User: {{ user.name }} Password: {{ users_generated_passwords[user.name] }}
+      {% endif %}
+      {% endfor %}
+    dest: "{{ users.password.store.remote_path }}_{{ inventory_hostname }}"
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+  no_log: true
+  when:
+    - users.password.generate | bool and users.password.generate is true
+    - users.password.store.remote_path is defined and users.password.store.remote_path != ""
+    - users.password.store.remote | bool and users.password.store.remote is true
+
+- name: "USERS > Create > Create user groups"
+  ansible.builtin.group:
+    name: "{{ item.group | default(item.name) }}"
+    gid: "{{ item.gid | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    system: "{{ item.system | default(false) }}"
+  become: true
+  loop: "{{ users_list }}"
+  when:
+    - (users.group.create is true or item.group is defined)
+    - item.state | default('present') == 'present'
+
+- name: "USERS > Create > Create user accounts"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    comment: "{{ item.comment | default(omit) }}"
+    uid: "{{ item.uid | default(omit) }}"
+    group: "{{ item.group | default(item.name if users.group.create else omit) }}"
+    groups: "{{ item.groups | default(users.default.groups) | join(',') }}"
+    append: "{{ item.append | default(users.groups.append) }}"
+    shell: "{{ item.shell | default(users.default.shell) }}"
+    home: "{{ item.home.path | default(omit) }}"
+    create_home: "{{ item.home.create | default(users.home.create) }}"
+    move_home: "{{ item.home.move | default(false) }}"
+    system: "{{ item.system | default(false) }}"
+    force: "{{ item.force | default(false) }}"
+    remove: "{{ item.remove | default(false) }}"
+    password: >-
+      {{ (item.password | default(
+           users_generated_passwords[item.name]
+           if users_generated_passwords is defined and users_generated_passwords[item.name] is defined
+           else omit
+         )) | password_hash('sha512', 65534 | random(seed=inventory_hostname) | string) }}
+    update_password: "{{ item.password.update | default('on_create') }}"
+    expires: "{{ item.expires | default(omit) }}"
+    password_expire_max: "{{ item.password.expire.max | default(users.password.age.max) }}"
+    password_expire_min: "{{ item.password.expire.min | default(users.password_age.min) }}"
+    state: "{{ item.state | default('present') }}"
+  become: true
+  register: users_creation_result
+  loop: "{{ users_list }}"
+  no_log: "{{ item.no_log | default(true) }}"
+
+- name: "USERS > create > Create .ssh directories for users"
+  ansible.builtin.file:
+    path: "{{ item.home.path | default('/home/' + item.name) + '/.ssh' }}"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.group | default(item.name if users.group.create else omit) }}"
+    mode: "0700"
+  become: true
+  loop: "{{ users_list }}"
+  when:
+    - users.ssh_key.manage | bool and users.ssh_key.manage is true
+    - item.ssh_keys is defined and item.ssh_keys != ""
+    - item.state | default('present') == 'present'
+    - users_creation_result is defined
+    - item.home.create | default(users.home.create) | bool
+
+- name: "USERS > Create > Add SSH authorized keys for users"
+  ansible.builtin.authorized_key:
+    user: "{{ item.0.name }}"
+    key: "{{ item.1 }}"
+    manage_dir: true
+    state: present
+  become: true
+  with_subelements:
+    - "{{ users_list }}"
+    - ssh_keys
+    - skip_missing: true
+  when:
+    - users.ssh_keys.manage | bool and users.ssh_key.manage is true
+    - item.0.state | default('present') == 'present'
+
+- name: "USERS > Create > Set expiration date for users"
+  ansible.builtin.command:
+    cmd: "chage -E {{ item.expires }} {{ item.name }}"
+  args:
+    warn: false
+  become: true
+  loop: "{{ users_list }}"
+  when:
+    - item.expires is defined
+    - item.state | default('present') == 'present'
+  changed_when: true

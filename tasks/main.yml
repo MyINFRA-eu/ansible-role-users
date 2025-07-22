@@ -23,3 +23,26 @@
       - "Copyright : (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code"
       - "Author    : Dennis de Houx <dennis@dehoux.be>"
       - "License   : https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0"
+
+- name: "USERS > Assert > Validate role variables and requirements"
+  ansible.builtin.import_tasks: assert.yml
+  run_once: true
+  delegate_to: localhost
+  tags:
+    - users_assert
+
+- name: "USERS > Create > Create and configure users"
+  ansible.builtin.import_tasks: create.yml
+  when:
+    - users.action in ['all', 'create']
+    - users.data.create is defined and users.data.create | length > 0
+  tags:
+    - users_create
+
+- name: "USERS > Remove > Remove users"
+  ansible.builtin.import_tasks: remove.yml
+  when:
+    - users.action in ['all', 'remove']
+    - users.data.remove is defined and users.data.remove | length > 0
+  tags:
+    - users_remove

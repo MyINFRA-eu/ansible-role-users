@@ -66,10 +66,166 @@ None.
 
 Available variables are listed below, along with default values (see `defaults/main.yml`):
 
+### Structure example
+
+**yaml:**
+```yml
+users:
+  action: ["all", "create", "remove"]
+  default:
+    shell: string
+    groups: list
+  home:
+    create: bool
+    remove: bool
+  password:
+    age:
+      max: number
+      min: number
+    generate: bool
+    length: number
+    chars: string
+    store:
+      file_name: string
+      controller: bool
+      remote_path: string
+      remote: bool
+    hash:
+      algorithm: ["sha512", "sha256", "md5"]
+  group:
+    create: bool
+    append: bool
+  ssh_key:
+    manage: bool
+    type: ["rsa", "ed25519", "ecdsa", "dsa"]
+    bits: [1024, 2048, 4096]
+  ssh:
+    directory:
+      path: string
+      mode: string
+    authorized_keys:
+      file: string
+      mode: string
+  data:
+    create: dict
+    remove: dict
 ```
-var1: true
-var2: "string"
-var3: []
+
+**json:**
+```json
+{
+    "users": {
+        "action": [
+            "all",
+            "create",
+            "remove"
+        ],
+        "default": {
+            "shell": "string",
+            "groups": "list"
+        },
+        "home": {
+            "create": "bool",
+            "remove": "bool"
+        },
+        "password": {
+            "age": {
+                "max": "number",
+                "min": "number"
+            },
+            "generate": "bool",
+            "length": "number",
+            "chars": "string",
+            "store": {
+                "file_name": "string",
+                "controller": "bool",
+                "remote_path": "string",
+                "remote": "bool"
+            },
+            "hash": {
+                "algorithm": [
+                    "sha512",
+                    "sha256",
+                    "md5"
+                ]
+            }
+        },
+        "group": {
+            "create": "bool",
+            "append": "bool"
+        },
+        "ssh_key": {
+            "manage": "bool",
+            "type": [
+                "rsa",
+                "ed25519",
+                "ecdsa",
+                "dsa"
+            ],
+            "bits": [
+                1024,
+                2048,
+                4096
+            ]
+        },
+        "ssh": {
+            "directory": {
+                "path": "string",
+                "mode": "string"
+            },
+            "authorized_keys": {
+                "file": "string",
+                "mode": "string"
+            }
+        },
+        "data": {
+            "create": "dict",
+            "remove": "dict"
+        }
+    }
+}
+```
+
+### User structure example
+
+**yaml:**
+```yml
+  username:
+    comment: string
+    uid: number
+    group: string
+    groups: list
+    append: bool
+    shell: string
+    home:
+      create: bool
+      move: bool
+      path: string
+    system: bool
+    force: bool
+    remove: bool
+```
+
+**json:**
+```json
+{
+  "username": {
+    "comment": "string",
+    "uid": "number",
+    "group": "string",
+    "groups": [],
+    "append": "bool",
+    "shell": "string",
+    "home": {
+      "create": "bool",
+      "move": "bool",
+      "path": "string"
+    },
+    "system": "bool",
+    "force": "bool",
+    "remove": "bool"
+  }
+}
 ```
 
 
