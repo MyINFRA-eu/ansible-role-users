@@ -2,13 +2,13 @@
 dependencies: []
 
 galaxy_info:
-  role_name: "name"
+  role_name: "users"
   namespace: "myinfra_eu"
   author: "Dennis-de-Houx"
-  description: "<description>."
+  description: "Manage users on the system and update ssh-keys."
   company: "All In One - MyINFRA.eu"
   license: "CC BY-NC-ND 4.0"
-  issue_tracker_url: https://github.com/MyINFRA-eu/<name>/issues
+  issue_tracker_url: https://github.com/MyINFRA-eu/ansible-role-users/issues
   min_ansible_version: "2.17"
   platforms:
     - name: Debian
@@ -19,9 +19,6 @@ galaxy_info:
         - jammy
         - noble
   galaxy_tags:
-    - php
-    - web
-    - drupal
-    - vm
-    - magento
-    - wordpress
+    - myinfra
+    - users
+    - ssh-keys
